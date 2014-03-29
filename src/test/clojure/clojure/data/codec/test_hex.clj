@@ -41,3 +41,29 @@
                 _ (encode! input 0 n output)
                 a2 (Hex/encodeHex input)]
             (= (into [] (take (* n 2) output)) (into [] (chars->bytes a2))))))))
+
+(deftest dec-correctness
+  (doseq [n (concat (range 1 6) (range 1001 1006))]
+    (is (let [orig (rand-bytes n)
+              enc (encode orig)
+              deco (decode enc)]
+          (= (into [] deco) (into [] orig))))))
+
+(deftest offset-dec-correctness
+  (doseq [n (concat (range 1 6) (range 1001 1006))]
+    (doseq [off (range 1 (min n 5))]
+      (is (let [orig (rand-bytes n)
+                enc (byte-array (concat (repeat off (byte 0)) (encode orig)))
+                deco (decode enc off (- (alength enc) off))]
+            (= (into [] deco) (into [] orig)))))))
+
+(deftest buffer-dec-correctness
+  (doseq [n (concat (range 1 6) (range 1001 1006))]
+    (doseq [excess-buf-len (range 1 10)]
+      (is (let [orig (rand-bytes n)
+                enc (encode orig)
+                deco (byte-array (+ n excess-buf-len))
+                _ (decode! enc 0 (alength ^bytes enc) deco)]
+            (= (into [] (take n deco)) (into [] orig)))))))
+
+

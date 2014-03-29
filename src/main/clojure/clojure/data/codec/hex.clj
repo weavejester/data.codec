@@ -20,6 +20,38 @@
 (def ^:private ^"[B" enc-bytes
   (byte-array (map (comp byte int) "0123456789abcdef")))
 
+(def ^:private ^"[B" dec-bytes
+  (let [^bytes ba (byte-array (inc (apply max enc-bytes)))]
+    (doseq [[idx enc] (map-indexed vector enc-bytes)]
+      (aset ba enc (byte idx)))
+    ba))
+
+(defn decode!
+  "Reads from the input byte array for the specified length starting at the offset
+   index, and hex decodes into the output array starting at index 0. Returns the
+   length written to output.
+
+   Note: length must be a multiple of 2."
+  [^bytes input ^long offset ^long length ^bytes output]
+  (let [end (+ offset length)]
+    (loop [i offset, j 0]
+      (if (< i end)
+        (let [n1 (aget dec-bytes (aget input i))
+              n2 (aget dec-bytes (aget input (inc i)))]
+          (aset output j (byte (bit-or (bit-shift-left n1 4) n2)))
+          (recur (+ i 2) (inc j)))))))
+
+(defn decode
+  "Returns a hex decoded byte array.
+
+  Note: length must be a multiple of 2."
+  ([^bytes input]
+    (decode input 0 (alength input)))
+  ([^bytes input ^long offset ^long length]
+    (let [dest (byte-array (/ length 2))]
+      (decode! input offset length dest)
+      dest)))
+
 (defn encode!
   "Reads from the input byte array for the specified length starting at the offset
    index, and hex encodes into the output array starting at index 0. Returns the
