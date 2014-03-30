@@ -66,4 +66,16 @@
                 _ (decode! enc 0 (alength ^bytes enc) deco)]
             (= (into [] (take n deco)) (into [] orig)))))))
 
+(deftest fit-encoding-transfer
+  (let [raw (rand-bytes 3)
+        in (ByteArrayInputStream. raw)
+        out (ByteArrayOutputStream.)]
+    (encoding-transfer in out :buffer-size 3)
+    (is (= (into [] (.toByteArray out)) (into [] (encode raw))))))
 
+(deftest split-encoding-transfer
+  (let [raw (rand-bytes 4)
+        in (ByteArrayInputStream. raw)
+        out (ByteArrayOutputStream.)]
+    (encoding-transfer in out :buffer-size 3)
+    (is (= (into [] (.toByteArray out)) (into [] (encode raw))))))

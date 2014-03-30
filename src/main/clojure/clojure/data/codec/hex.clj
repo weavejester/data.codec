@@ -39,7 +39,8 @@
         (let [n1 (aget dec-bytes (aget input i))
               n2 (aget dec-bytes (aget input (inc i)))]
           (aset output j (byte (bit-or (bit-shift-left n1 4) n2)))
-          (recur (+ i 2) (inc j)))))))
+          (recur (+ i 2) (inc j)))
+        j))))
 
 (defn decode
   "Returns a hex decoded byte array.
@@ -63,7 +64,8 @@
         (let [b (aget input i)]
           (aset output j (aget enc-bytes (bit-shift-right (bit-and 0xf0 b) 4)))
           (aset output (inc j) (aget enc-bytes (bit-and 0x0f b)))
-          (recur (inc i) (+ j 2)))))))
+          (recur (inc i) (+ j 2)))
+        j))))
 
 (defn encode
   "Returns a hex encoded byte array."
@@ -73,3 +75,21 @@
     (let [dest (byte-array (* length 2))]
       (encode! input offset length dest)
       dest)))
+
+(defn encoding-transfer
+  "Hex encodes from input-stream to output-stream. Returns nil or throws IOException.
+
+  Options are key/value pairs and may be one of
+    :buffer-size  read buffer size to use; default is 4096."
+  [^InputStream input-stream ^OutputStream output-stream & opts]
+  (let [opts (if opts (apply hash-map opts))
+        in-size (:buffer-size opts 4096)
+        out-size (* in-size 2)
+        in-buf (byte-array in-size)
+        out-buf (byte-array out-size)]
+    (loop []
+      (let [in-size (.read input-stream in-buf)]
+        (when (pos? in-size)
+          (let [out-size (encode! in-buf 0 in-size out-buf)]
+            (.write output-stream out-buf 0 out-size)
+            (recur)))))))
