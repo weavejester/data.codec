@@ -32,13 +32,14 @@
    length written to output.
 
    Note: length must be a multiple of 2."
-  [^bytes input ^long offset ^long length ^bytes output]
+  ^long [^bytes input ^long offset ^long length ^bytes output]
   (let [end (+ offset length)]
     (loop [i offset, j 0]
       (if (< i end)
-        (let [n1 (aget dec-bytes (aget input i))
-              n2 (aget dec-bytes (aget input (inc i)))]
-          (aset output j (byte (bit-or (bit-shift-left n1 4) n2)))
+        (let [n1 (long (aget dec-bytes (aget input i)))
+              n2 (long (aget dec-bytes (aget input (inc i))))
+              b  (bit-or (bit-shift-left n1 4) n2)]
+          (aset output j (byte b))
           (recur (+ i 2) (inc j)))
         j))))
 
@@ -49,7 +50,7 @@
   ([^bytes input]
     (decode input 0 (alength input)))
   ([^bytes input ^long offset ^long length]
-    (let [dest (byte-array (/ length 2))]
+    (let [dest (byte-array (quot length 2))]
       (decode! input offset length dest)
       dest)))
 
@@ -57,13 +58,15 @@
   "Reads from the input byte array for the specified length starting at the offset
    index, and hex encodes into the output array starting at index 0. Returns the
    length written to output."
-  [^bytes input ^long offset ^long length ^bytes output]
+  ^long [^bytes input ^long offset ^long length ^bytes output]
   (let [end (+ offset length)]
     (loop [i offset, j 0]
       (if (< i end)
-        (let [b (aget input i)]
-          (aset output j (aget enc-bytes (bit-shift-right (bit-and 0xf0 b) 4)))
-          (aset output (inc j) (aget enc-bytes (bit-and 0x0f b)))
+        (let [b  (long (aget input i))
+              n1 (bit-shift-right (bit-and 0xf0 b) 4)
+              n2 (bit-and 0x0f b)]
+          (aset output j (aget enc-bytes n1))
+          (aset output (inc j) (aget enc-bytes n2))
           (recur (inc i) (+ j 2)))
         j))))
 

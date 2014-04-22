@@ -12,7 +12,7 @@
     (take n)
     (byte-array)))
 
-(defn chars->bytes [cs]
+(defn chars->bytes [^chars cs]
   (.getBytes (String. cs)))
 
 (deftest enc-correctness
