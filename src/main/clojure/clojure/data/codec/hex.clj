@@ -96,3 +96,35 @@
           (let [out-size (encode! in-buf 0 in-size out-buf)]
             (.write output-stream out-buf 0 out-size)
             (recur)))))))
+
+(defn- decode-buffer-size ^long [opts ^long default]
+  (if-let [in-size (:buffer-size opts)]
+    (if (even? in-size)
+      in-size
+      (throw (IllegalArgumentException. "Buffer size must be a multiple of 2.")))
+    default))
+
+(defn decoding-transfer
+  "Hex decodes from input-stream to output-stream. Returns nil or throws IOException.
+
+  Options are key/value pairs and may be one of
+    :buffer-size  read buffer size to use; default is 4096."
+  [^InputStream input-stream ^OutputStream output-stream & opts]
+  (let [opts (if opts (apply hash-map opts))
+        in-size (decode-buffer-size opts 4096)
+        out-size (quot in-size 2)
+        in-buf (byte-array in-size)
+        out-buf (byte-array out-size)]
+    (loop [carry nil]
+      (let [buf-size (if carry
+                       (do (aset in-buf 0 (byte carry))
+                           (inc (.read input-stream in-buf 1 (dec in-size))))
+                       (.read input-stream in-buf))]
+        (if (pos? buf-size)
+          (if (odd? buf-size)
+            (let [out-size (decode! in-buf 0 (dec buf-size) out-buf)]
+              (.write output-stream out-buf 0 out-size)
+              (recur (aget in-buf (dec buf-size))))
+            (let [out-size (decode! in-buf 0 buf-size out-buf)]
+              (.write output-stream out-buf 0 out-size)
+              (recur nil))))))))
